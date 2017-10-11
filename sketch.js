@@ -101,6 +101,8 @@ function rect_custom_learn(x,y,l,b,id){
 function circle_tank(pos1,pos2,pos3,pos4,id){
         this.pos1=pos1;
         this.pos2=pos2;
+        this.ini_x=pos1
+        this.ini_y=pos2
         this.pos3=pos3;
         this.pos4=pos4;
         this.id=id;
@@ -323,6 +325,10 @@ function circle_tank(pos1,pos2,pos3,pos4,id){
         }
       }
 
+      this.travel=function(){
+        return distance_straight_line(this.ini_x,this.ini_y,this)
+      }
+
 }
 
 // you can also use 'let print = console.log'
@@ -416,7 +422,8 @@ function bsxfun(type, m1, m2) {
 
 function population(tankno){
   this.fighters_=[]
- this.init=function(){
+  this.fit=
+  this.init=function(){
   for (var i = 0; i < 150 - 1; i++) {
     x=random(0,width)
     y=random(0,height)
@@ -431,6 +438,9 @@ function population(tankno){
   for (var i = 0; i < this.fighters_.length-1; i++) {
     var element = this.fighters_[i];
     var sum =math.sum(element.history)
+    sum=sum*(element.travel()/10)
+    sum=Math.round(sum)
+    print(sum)
     
    }
  }
