@@ -1,20 +1,5 @@
-// Skip to content
-// This repository
-// Search
-// Pull requests
-// Issues
-// Marketplace
-// Explore
-//  @virgincodes
-//  Sign out
-//  Unwatch 2
-//   Star 0  Fork 3 virgincodes/Diabetes-Neural-Net-javascript
-//  Code  Issues 1  Pull requests 0  Projects 0  Wiki  Settings Insights 
-// Branch: master Find file Copy pathDiabetes-Neural-Net-javascript/algorithm.js
-// a643c1d  on Apr 13
-// @virgincodes virgincodes Create algorithm.js
-// 1 contributor
-// RawBlameHistory     
+
+
 // 162 lines (118 sloc)  5.73 KB
 var d = [10, 115, 0, 0, 0, 35.3, 0.134, 29];
 // console.log(turn(d));

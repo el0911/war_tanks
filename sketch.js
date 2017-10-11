@@ -2,16 +2,21 @@
 
 var x, y,y1,x1;
 var speed=10;
-var fighters;
+var timer=1
+var generation=0
+var time_step=10
+var fighters=[];
 var sequence=[10,10,10,10,10,10,10,10,10,10]
 var layers =10
 var output=1
 var tank,tank1;
 var height_=800;
-var weights=[]
 var width_=1520
+var h_divide=height_/2
+var w_divide=width_/3
 var o,o1,o2,o3,o4,o5,o6
 var obstacles
+var pop
 var control,control1///used  to hold values for a specific tank 
  
 function setup() {
@@ -22,9 +27,9 @@ function setup() {
   y=random(0,height)
   x1=random(0,width)
   y1=random(0,height)
-  tank=new circle_tank(x, y, 24, 24,'tank1');
-  tank1=new circle_tank(x1, y1, 24, 24,'tank2');
-  fighters=[tank,tank1]    
+  pop =new population
+  pop.init(3000)
+  //print(fighters)
   init_obstacles()
   obstacles=[o,o1,o2,o3,o4,o5,o6]  
 }
@@ -51,10 +56,17 @@ function draw() {
     // tank.up();
     // tank1.down();
      // var rand=Math.floor((Math.random() * 4) + 1);     
-      control=recurrent(weights,width_,height_,tank.pos1,tank.pos2,tank.pos3,tank.pos4,tank.closest_wall.angle,tank.closest_enemy.angle,tank.closest_wall.distance,tank.closest_enemy.distance,tank.boundcheck(control),sequence,layers,output); 
-      tank.controller(control1);
-      control1=recurrent(weights,width_,height_,tank1.pos1,tank1.pos2,tank1.pos3,tank1.pos4,tank1.closest_wall.angle,tank1.closest_enemy.angle,tank1.closest_wall.distance,tank1.closest_enemy.distance,tank1.boundcheck(control1),sequence,layers,output); 
-      tank1.controller(control1);
+      // control=tank1.net(weights,width_,height_,tank.pos1,tank.pos2,tank.pos3,tank.pos4,tank.closest_wall.angle,tank.closest_enemy.angle,tank.closest_wall.distance,tank.closest_enemy.distance,tank.boundcheck(control),sequence,layers,output); 
+      // tank.controller(control);
+      // control1=tank1.net(weights,width_,height_,tank1.pos1,tank1.pos2,tank1.pos3,tank1.pos4,tank1.closest_wall.angle,tank1.closest_enemy.angle,tank1.closest_wall.distance,tank1.closest_enemy.distance,tank1.boundcheck(control1),sequence,layers,output); 
+      // tank1.controller(control1);
+      for (var i = 0; i < fighters.length; i++) {
+        control=fighters[i].net(width_,height_,fighters[i].pos1,fighters[i].pos2,fighters[i].pos3,fighters[i].pos4,fighters[i].closest_wall.angle,fighters[i].closest_enemy.angle,fighters[i].closest_wall.distance,fighters[i].closest_enemy.distance,fighters[i].boundcheck(control),sequence,layers,output); 
+        fighters[i].controller(control);
+      }
+
+
+
   //    tank.opponents()
     //  tank1.opponents(ß)
       // console.log(rand)
@@ -62,8 +74,7 @@ function draw() {
     // tank1.right_();
     //console.log(index)
   //}
-}
-
+    }
 
 function init_obstacles(){
   ///would make this one random later
@@ -93,6 +104,7 @@ function circle_tank(pos1,pos2,pos3,pos4,id){
         this.pos3=pos3;
         this.pos4=pos4;
         this.id=id;
+        this.history=[0,0,0,0,0,0]
         this.closest_enemy={
           distance:height_*width_,//default distance has to be bigger than u can get on the canvas wanted to use a random number but i was like no need this should work(i hope)
           id:'',
@@ -185,19 +197,37 @@ function circle_tank(pos1,pos2,pos3,pos4,id){
           if(x==4)
             this.down()
           }
-      }
+          this.create_history()///now i update its hostory
+         }
 ///prevents my tank from going out of the word
       this.boundcheck=function(x){
-        if(x==1||x==2){//checking the height 
-          if(this.pos1>width-10||this.pos1<10){
+        if(x==1){//checking the height 
+          if(this.pos1<10){
             ellipse(this.pos1,this.pos2,this.pos3,this.pos4);                       
             ///it means its at the edge so i wont let the nigger take that step so he has to figgure something else out
             return 0
           }
          }
 
-        else if(x==3||x==4){//checking the height 
-          if(this.pos2>height-10||this.pos2<10){
+         else  if(x==2){//checking the height 
+          if(this.pos1>width-10){
+            ellipse(this.pos1,this.pos2,this.pos3,this.pos4);                       
+            ///it means its at the edge so i wont let the nigger take that step so he has to figgure something else out
+            return 0
+          }
+         }
+
+         else if(x==3){//checking the height 
+          if(this.pos2<10){
+            ellipse(this.pos1,this.pos2,this.pos3,this.pos4);                      
+            ///it means its at the edge so i wont let the nigger take that step so he has to figgure something else out
+            return 0
+          }
+         }
+
+
+         else { 
+          if(this.pos2>height-10){
             ellipse(this.pos1,this.pos2,this.pos3,this.pos4);                      
             ///it means its at the edge so i wont let the nigger take that step so he has to figgure something else out
             return 0
@@ -230,8 +260,74 @@ function circle_tank(pos1,pos2,pos3,pos4,id){
         }
            return obstacles_calc
       }
+
+
+      this.net = function(width_,height_,x,y,size1,size2,closest_wall_angle,closest_wall_distance,enemy_angle,enemy_distance,boundcheck,layers,sequence,output){
+          var control=1
+          var x1=[width_,height_,x,y,size1,size2,closest_wall_angle,closest_wall_distance,enemy_angle,enemy_distance,boundcheck]
+         // var Q = size(x1, 2);
+        
+          //Input 1
+          var W1 = math.random([10,x1.length],1/10000)
+          var W2 = math.random([x1.length,10])
+          var W3 = math.random([4,11],1/10)
+
+          var output=math.multiply(W1,x1)////layer 1
+          output=tansig_apply(output)
+          output=math.multiply(W2,output)//////layer 2
+          output=tansig_apply(output)
+          output=math.multiply(W3,output)///layer 3 
+          if(output[0]>output[1]&&output[0]>output[2]&&output[0]>output[3]){
+            //then node 1 must be the strongest
+            control = 1
+          }
+        else  if(output[1]>output[0]&&output[1]>output[2]&&output[1]>output[3]){
+            //then node 1 must be the strongest
+            control = 2
+          }
+        else  if(output[2]>output[0]&&output[2]>output[1]&&output[2]>output[3]){
+            //then node 3 must be the strongest
+            control = 3
+          }
+          else{
+            control=4
+          }
+          return control;
+      }
+
+      this.create_history=function(){
+        ///i check were each one has been
+        if ((this.pos1>0&&this.pos1<(w_divide))&&(this.pos2>0&&this.pos2<h_divide)) {
+          ///box 1
+          this.history[0]=1;
+        }
+        else if((this.pos1>w_divide&&this.pos1<(w_divide*2)) &&  (this.pos2>0&&this.pos2<h_divide) ){
+          ///box 2
+          this.history[1]=1;
+        }
+        else if((this.pos1>w_divide&&this.pos1<(w_divide*3)) &&  (this.pos2>0&&this.pos2<h_divide) ){
+          ///box 3
+          this.history[2]=1;
+        }
+        else if ((this.pos1>0&&this.pos1<(w_divide))&&(this.pos2>h_divide&&(this.pos2<h_divide*2))) {
+          ///box 4
+          this.history[3]=1;
+        }
+        else if((this.pos1>w_divide&&this.pos1<(w_divide*2)) &&  (this.pos2>h_divide&&(this.pos2<h_divide*2))) {
+          ///box 5
+          this.history[4]=1;
+        }
+        else {
+          ///box 6
+          this.history[5]=1;
+        }
+      }
+
 }
 
+// you can also use 'let print = console.log'
+// you might also want to add semi-colons to your code
+// don't forget to google 'variadic templates in Javascript'.
 function print(x){
   console.log(x)
 }
@@ -268,97 +364,85 @@ function angle_to_turn(x,y,z){
 
 
 
+function size(a, s) {
+  return 1;
+}
+
+function tansig_apply(x) {
+  var array = Array(x.length).fill(0);
+  for (var i = 0; i < array.length; i++) {
+    e = Math.exp(2 * x[i])
+    array[i] = (e - 1) / (e + 1);
+  }
+  return array;
+}
+
+function logsig(x) {
 
 
+  return 1 / (1 + Math.exp(-x))
 
-function recurrent(wweights,idth_,height_,x,y,size1,size2,closest_wall_angle,closest_wall_distance,enemy_angle,enemy_distance,boundcheck,layers,sequence,output){
-       var control=1
-       var x1=[width_,height_,x,y,size1,size2,closest_wall_angle,closest_wall_distance,enemy_angle,enemy_distance,boundcheck]
-       var memory=math.zeros(13);                  // returns [0, 0, 0]       
-       for(var i=0;i<=layers-1;i++){
-        if (i!=layers-1) {
-          x1= math.add(softmax(x1,0,weights[i],0),memory)  
-          memory=x1
-          x1=tansig_apply(x1)          
-        }
-        else{//relu function
-          x1= softmax(x1,0,weights[i],0)
-          x1=tansig_apply(x1)  
-        }
-      }///RNN CALCULATIONS
-       x1 = logsig(x1) 
-       Math.round(value)
-       print(x1)
-       return control
+
+}
+
+function mapminmax_apply(x, a, b, c) {
+  // var y = bsxfun("-", x, a);
+  // y = bsxfun("*", y, b);
+  // y = bsxfun("+", y, -1);
+  return x;
+}
+
+function bsxfun(type, m1, m2) {
+  var result = '';
+  
+  if (type == "-") {
+    result = math.subtract(m1, m2);
+  }
+  else if (type == "+") {
+    result = math.add(m1, m2);;
+  }
+
+
+  else if (type == "*") {
+    var array = Array(m1.length).fill(0);
+    for (var i = 0; i < m1.length; i++) {
+      array[i] = m1[i] * m2[i];
+    }
+    result = array;
+  }
+  return result;
 }
 
 
-
-
-
-
-function softmax(x,a,b,c){
-  console.log(x);
-  console.log(a);
-  console.log(b);
-  console.log(c);
-  var y = bsxfun("-",x,a);
-  y = bsxfun("*",y,b);
-  y = bsxfun("+",y,0);
-  return y;
+function population(tankno){
+  this.fighters_=[]
+ this.init=function(){
+  for (var i = 0; i < 150 - 1; i++) {
+    x=random(0,width)
+    y=random(0,height)
+   
+    var element = new circle_tank(x, y, 24, 24,'tank'+i);
+    fighters=fighters.concat(element)
   }
-  
-  function bsxfun(type,m1,m2){
-  var result = '';
-  console.log(type);
-  console.log(m1);
-  console.log(m2);
-  if(type=="-"){
-  result = math.subtract(m1, m2);
-  }
-  else if(type=="+") {
-  result = math.add(m1, m2); ;
-  }
-  
-  
-  else if(type=="*") {
-  var array=Array(m1.length).fill(0);
-  for (var i = 0; i < m1.length; i++) {
-  array[i]=m1[i]*m2[i];
-  }
-  result=array;
-  }
-  return result;
-  }
-  
+  this.fighters_=fighters
+ }
 
-  function tansig_apply(x) {
-    var array = Array(x.length).fill(0);
-    for (var i = 0; i < array.length; i++) {
-      e = Math.exp(2 * x[i])
-      array[i] = (e - 1) / (e + 1);
-    }
-    return array;
-  }
-  
-  function logsig(x) {
-  
-  
-    return 1 / (1 + Math.exp(-x))
-  
-  
-  }
+ this.evaluate=function(){
+  for (var i = 0; i < this.fighters_.length-1; i++) {
+    var element = this.fighters_[i];
+    var sum =math.sum(element.history)
+    
+   }
+ }
 
 
+}
 
-
-
-
-
-
-
-
-
+setInterval(function() {
+    pop.evaluate()
+    fighters=[]////killing generation and starting again
+    pop.init(3000)
+}, 1000* time_step);
 
 
 
@@ -371,3 +455,6 @@ function softmax(x,a,b,c){
 //     }
 // };
 // Robot.killAllHumans(); joking code
+
+
+
